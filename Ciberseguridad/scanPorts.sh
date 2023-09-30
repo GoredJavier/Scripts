@@ -21,9 +21,12 @@ function checkPort(){
 declare -a ports=( $(seq 1 65535) )
 
 if [ $1 ]; then
+  echo -e "[i] Iniciando escaneo de puertos...\n\n"
   for port in ${ports[@]}; do
     checkPort $1 $port &
   done
+else
+  echo -e "\n\n[!] Indique la IP!\n"
 fi
 
 wait
