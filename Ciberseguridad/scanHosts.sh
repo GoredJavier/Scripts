@@ -35,6 +35,21 @@ function parseIP(){
   binIP="${ip[1]}${ip[2]}${ip[3]}${ip[4]}"
 }
 
+function calculateDecimalIP(){
+  binIP=$1
+  octet1Bin=${binIP:0:8}
+  octet2Bin=${binIP:7:8}
+  octet3Bin=${binIP:15:8}
+  octet4Bin=${binIP:23:8}
+  octet1=$(echo "ibase=2; $octet1Bin" | bc)
+  octet2=$(echo "ibase=2; $octet2Bin" | bc)
+  octet3=$(echo "ibase=2; $octet3Bin" | bc)
+  octet4=$(echo "ibase=2; $octet4Bin" | bc)
+  point="."
+  decimalIP="$octet1$point$octet2$point$octet3$point$octet4"
+  echo "$decimalIP"
+}
+
 function calculateBaseIP(){
   echo -e "\nVamos a calcular la IP base de $binIP con la mask $binMask"
   decimalMask=$(echo "ibase=2; $binMask" | bc)
@@ -73,6 +88,7 @@ function calculateLastIP(){
   done
   lastIP+="0"
   echo "$lastIP"
+  decimal=$(calculateDecimalIP $lastIP)
 }
 
 # MAIN
