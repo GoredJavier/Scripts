@@ -24,6 +24,7 @@ cidr=$2
 mask=$((32 - cidr))
 baseIP=""
 lastIP=""
+rangeIP=""
 
 # FUNCTIONS
 
@@ -35,12 +36,20 @@ function parseIP(){
   binIP="${ip[1]}${ip[2]}${ip[3]}${ip[4]}"
 }
 
+function calculateNextIP(){
+  binaryIP=$1
+  decimalIPaux=$(echo "ibase=2; $binaryIP" | bc)
+  decimalIPaux=$((decimalIPaux + 1))
+  binaryIP=$(echo "obase=2; $decimalIPaux" | bc)
+  echo "$binaryIP"
+}
+
 function calculateDecimalIP(){
   binIP=$1
   octet1Bin=${binIP:0:8}
-  octet2Bin=${binIP:7:8}
-  octet3Bin=${binIP:15:8}
-  octet4Bin=${binIP:23:8}
+  octet2Bin=${binIP:8:8}
+  octet3Bin=${binIP:16:8}
+  octet4Bin=${binIP:24:8}
   octet1=$(echo "ibase=2; $octet1Bin" | bc)
   octet2=$(echo "ibase=2; $octet2Bin" | bc)
   octet3=$(echo "ibase=2; $octet3Bin" | bc)
@@ -48,6 +57,23 @@ function calculateDecimalIP(){
   point="."
   decimalIP="$octet1$point$octet2$point$octet3$point$octet4"
   echo "$decimalIP"
+}
+
+function calculateRangeIP(){
+  decimalFirst=$(echo "ibase=2; $baseIP" | bc)
+  decimalLast=$(echo "ibase=2; $lastIP" | bc)
+  rangeIP=$((decimalLast - decimalFirst))
+  echo "$rangeIP"
+}
+
+function scanHosts(){
+  echo "Hola"
+  actualIPbin=$baseIP
+  for ((i=0; i<rangeIP; ++i));do
+    actualIP=$(calculateDecimalIP $actualIPbin)
+    echo -e "\n$actualIP"
+    actualIPbin=$(calculateNextIP $actualIPbin)
+  done
 }
 
 function calculateBaseIP(){
@@ -89,18 +115,23 @@ function calculateLastIP(){
   lastIP+="0"
   echo "$lastIP"
   decimal=$(calculateDecimalIP $lastIP)
+  echo "$decimal"
+  next=$(calculateNextIP $lastIP)
+  echo "$next"
 }
 
 # MAIN
 
 tput civis
 
-parseIP $1
-
-calculateMasks
-
-calculateBaseIP
-
-calculateLastIP
-
+if [ $1 ] && [ $2 ]; then
+  parseIP $1
+  calculateMasks
+  calculateBaseIP
+  calculateLastIP
+  calculateRangeIP
+  scanHosts
+else
+  echo -e "\n\n[!] Indica como primer párametro la IP y segundo el CIDR!\n"
+fi
 tput cnorm
