@@ -1,17 +1,27 @@
 #!/bin/bash
 
+#COLOURS
+
+greenColour="\e[0;32m\033[1m"
+endColour="\033[0m\e[0m"
+redColour="\e[0;31m\033[1m"
+yellowColour="\e[0;33m\033[1m"
+grayColour="\e[0;37m\033[1m"
+
+
 # CTRL C EXIT GESTION
 
 trap ctrl_c SIGINT
 
 function ctrl_c(){
-  echo -e "\n\n[+] Saliendo...\n"
+  echo -e "\n\n${redColour}[+] Saliendo...${endColour}\n"
   tput cnorm
   exit 1
 }
 
 # GLOBAL VARIABLES
 
+declare -a topPorts=("80" "443" "22" "25" "21")
 declare -a ip
 declare -g binIP
 binMask0=""
@@ -62,22 +72,22 @@ function calculateDecimalIP(){
 function calculateRangeIP(){
   decimalFirst=$(echo "ibase=2; $baseIP" | bc)
   decimalLast=$(echo "ibase=2; $lastIP" | bc)
-  rangeIP=$((decimalLast - decimalFirst))
-  echo "$rangeIP"
+  rangeIP=$((decimalLast - decimalFirst + 1))
 }
 
 function scanHosts(){
-  echo "Hola"
   actualIPbin=$baseIP
   for ((i=0; i<rangeIP; ++i));do
     actualIP=$(calculateDecimalIP $actualIPbin)
-    echo -e "\n$actualIP"
     actualIPbin=$(calculateNextIP $actualIPbin)
+    for port in "${topPorts[@]}"; do
+      timeout 1 bash -c "echo '' > /dev/tcp/$actualIP/$port" 2>/dev/null && echo -e "\n${grayColour}[+] El Host ${yellowColour}${actualIP}${endColour} ${grayColour}está${endColour} ${greenColour}activo${endColour} ${grayColour}y con el puerto${endColour} ${yellowColour}${port}${endColour} ${greenColour}abierto${endColour}${grayColour}.${endColour}" &
+    done
   done
+  wait
 }
 
 function calculateBaseIP(){
-  echo -e "\nVamos a calcular la IP base de $binIP con la mask $binMask"
   decimalMask=$(echo "ibase=2; $binMask" | bc)
   decimalIP=$(echo "ibase=2; $binIP" | bc)
   decimalBaseIP=$(((decimalIP & decimalMask) + 1))
@@ -102,7 +112,6 @@ function calculateMasks(){
 }
 
 function calculateLastIP(){
-  echo -e "\nVamos a calcular la ultima IP"
   size=${#baseIP}
   size=$((size-1))
   for ((i=0; i<$size; ++i));do
@@ -113,18 +122,15 @@ function calculateLastIP(){
     fi
   done
   lastIP+="0"
-  echo "$lastIP"
-  decimal=$(calculateDecimalIP $lastIP)
-  echo "$decimal"
-  next=$(calculateNextIP $lastIP)
-  echo "$next"
 }
 
 # MAIN
 
 tput civis
 
-if [ $1 ] && [ $2 ]; then
+if [ $2 -ge 31 ] || [ $2 -le 16 ]; then
+  echo -e "\n\n${redColour}[!] CIDR incorrecto o no aceptado!${endColour}\n"
+elif [ $1 ] && [ $2 ]; then
   parseIP $1
   calculateMasks
   calculateBaseIP
@@ -132,6 +138,6 @@ if [ $1 ] && [ $2 ]; then
   calculateRangeIP
   scanHosts
 else
-  echo -e "\n\n[!] Indica como primer párametro la IP y segundo el CIDR!\n"
+  echo -e "\n\n${redColour}[!] Indica como primer párametro la IP y segundo el CIDR!${endColour}\n"
 fi
 tput cnorm
